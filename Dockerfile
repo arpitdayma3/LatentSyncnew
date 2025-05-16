@@ -1,4 +1,5 @@
-FROM nvidia/cuda:12.6.0-base
+FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu24.04
+
 
 # Install system packages
 RUN apt-get update && apt-get install -y git ffmpeg libgl1 wget unzip python3-pip
