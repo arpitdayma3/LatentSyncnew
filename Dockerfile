@@ -16,7 +16,7 @@ RUN python3 -m venv /opt/venv && \
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install PyTorch with CUDA 12.4 support
-RUN pip install torch==2.5.1 torchvision==0.16.1 torchaudio==2.1.0 --extra-index-url https://download.pytorch.org/whl/cu124 
+RUN pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --extra-index-url https://download.pytorch.org/whl/cu124 
 
 # Optional: Install Cython early for compiling packages like insightface
 RUN pip install cython
