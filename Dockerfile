@@ -1,25 +1,28 @@
-FROM nvidia/cuda:12.4.0-base-ubi8
+FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu24.04
 
-# Install system packages
+# Install system dependencies
 RUN apt-get update && apt-get install -y git ffmpeg libgl1 wget unzip python3-pip
 
 # Set working directory
 WORKDIR /workspace
 
-# Clone your forked repo
+# Clone your repo
 RUN git clone https://github.com/arpitdayma3/LatentSyncnew.git  .
-RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu121 
 
-# Install Python dependencies
+# Install PyTorch compatible with CUDA 12.9
+RUN pip install --break-system-packages \
+    torch==2.5.1+cu129 \
+    torchvision==0.20.1+cu129 \
+    torchaudio==2.5.1 \
+    --extra-index-url https://download.pytorch.org/whl/cu129 
+
+# Install requirements.txt
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Download checkpoints
+# Setup checkpoints and handler logic
 COPY setup_checkpoints.sh .
 RUN chmod +x setup_checkpoints.sh && ./setup_checkpoints.sh
 
-# Copy handler
 COPY handler.py .
-
-# Expose port
 EXPOSE 8000
