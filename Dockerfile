@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y git ffmpeg libgl1 wget unzip python3-pi
 WORKDIR /workspace
 
 # Clone your forked repo
-RUN git clone https://github.com/YOUR_USERNAME/LatentSync.git  .
+RUN git clone https://github.com/arpitdayma3/LatentSyncnew.git  .
 RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu121 
 
 # Install Python dependencies
