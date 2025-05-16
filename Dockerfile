@@ -16,8 +16,7 @@ RUN python3 -m venv /opt/venv && \
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install PyTorch (CUDA 12.9)
-RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu124  
-
+RUN pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --extra-index-url https://download.pytorch.org/whl/cu124
 # Clone repo and proceed with setup
 RUN git clone https://github.com/arpitdayma3/LatentSyncnew.git .
 
