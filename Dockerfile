@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.1-base
+FROM nvidia/cuda:12.4.0.base
 
 # Install system packages
 RUN apt-get update && apt-get install -y git ffmpeg libgl1 wget unzip python3-pip
