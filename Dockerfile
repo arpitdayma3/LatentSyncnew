@@ -1,4 +1,5 @@
-FROM nvidia/cuda:12.1.0-devel-ubuntu20.04 
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04  
+
 
 WORKDIR /workspace
 
@@ -15,7 +16,7 @@ RUN python3 -m venv /opt/venv && \
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install PyTorch (CUDA 12.9)
-RUN pip install torch==2.5.1+cu129 torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu129 
+RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu124  
 
 # Clone repo and proceed with setup
 RUN git clone https://github.com/arpitdayma3/LatentSyncnew.git .
