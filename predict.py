@@ -5,6 +5,8 @@ from cog import BasePredictor, Input, Path
 import os
 import time
 import subprocess
+import requests
+from pathlib import Path
 
 MODEL_CACHE = "checkpoints"
 MODEL_URL = "https://weights.replicate.delivery/default/chunyu-li/LatentSync/model.tar"
@@ -16,6 +18,14 @@ def download_weights(url, dest):
     print("downloading to: ", dest)
     subprocess.check_call(["pget", "-xf", url, dest], close_fds=False)
     print("downloading took: ", time.time() - start)
+
+
+def download_file(url, dest):
+    response = requests.get(url)
+    response.raise_for_status()
+    with open(dest, 'wb') as f:
+        f.write(response.content)
+    return dest
 
 
 class Predictor(BasePredictor):
@@ -39,8 +49,8 @@ class Predictor(BasePredictor):
 
     def predict(
         self,
-        video: Path = Input(description="Input video", default=None),
-        audio: Path = Input(description="Input audio to ", default=None),
+        video_url: str = Input(description="URL of the input video", default=None),
+        audio_url: str = Input(description="URL of the input audio", default=None),
         guidance_scale: float = Input(description="Guidance scale", ge=1, le=3, default=2.0),
         inference_steps: int = Input(description="Inference steps", ge=20, le=50, default=20),
         seed: int = Input(description="Set to 0 for Random seed", default=0),
@@ -50,8 +60,13 @@ class Predictor(BasePredictor):
             seed = int.from_bytes(os.urandom(2), "big")
         print(f"Using seed: {seed}")
 
-        video_path = str(video)
-        audio_path = str(audio)
+        # Download the video and audio files from the provided URLs
+        video_path = "/tmp/video_input.mp4"
+        audio_path = "/tmp/audio_input.wav"
+
+        video_path = download_file(video_url, video_path)
+        audio_path = download_file(audio_url, audio_path)
+
         config_path = "configs/unet/stage2.yaml"
         ckpt_path = "checkpoints/latentsync_unet.pt"
         output_path = "/tmp/video_out.mp4"
