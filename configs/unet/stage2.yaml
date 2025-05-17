@@ -1,15 +1,16 @@
+# Configuration for U-Net Stage 2
+
 data:
   syncnet_config_path: configs/syncnet/syncnet_16_pixel_attn.yaml
   train_output_dir: debug/unet
-  train_fileslist: /mnt/bn/maliva-gen-ai-v2/chunyu.li/fileslist/data_v10_core.txt
+  train_fileslist: fileslist/data_v10_core.txt
   train_data_dir: ""
-  audio_embeds_cache_dir: /mnt/bn/maliva-gen-ai-v2/chunyu.li/audio_cache/embeds
-  audio_mel_cache_dir: /mnt/bn/maliva-gen-ai-v2/chunyu.li/audio_cache/mel
-
+  audio_embeds_cache_dir: audio_cache/embeds
+  audio_mel_cache_dir: audio_cache/mel
   val_video_path: assets/demo1_video.mp4
   val_audio_path: assets/demo1_audio.wav
-  batch_size: 1 # 4
-  num_workers: 12 # 12
+  batch_size: 1
+  num_workers: 4
   num_frames: 16
   resolution: 256
   mask_image_path: latentsync/utils/mask.png
@@ -25,9 +26,9 @@ run:
   pixel_space_supervise: true
   use_syncnet: true
   sync_loss_weight: 0.05
-  perceptual_loss_weight: 0.1 # 0.1
-  recon_loss_weight: 1 # 1
-  guidance_scale: 2.0 # [1.0 - 3.0]
+  perceptual_loss_weight: 0.1
+  recon_loss_weight: 1
+  guidance_scale: 2.0
   trepa_loss_weight: 10
   inference_steps: 20
   trainable_modules:
@@ -35,7 +36,7 @@ run:
     - attentions.
   seed: 1247
   use_mixed_noise: true
-  mixed_noise_alpha: 1 # 1
+  mixed_noise_alpha: 1
   mixed_precision_training: true
   enable_gradient_checkpointing: true
   max_train_steps: 10000000
@@ -73,14 +74,14 @@ model:
   downsample_padding: 1
   flip_sin_to_cos: true
   freq_shift: 0
-  in_channels: 13 # 49
+  in_channels: 13
   layers_per_block: 2
   mid_block_scale_factor: 1
   norm_eps: 1e-5
   norm_num_groups: 32
-  out_channels: 4 # 16
+  out_channels: 4
   sample_size: 64
-  resnet_time_scale_shift: default # Choose between [default, scale_shift]
+  resnet_time_scale_shift: default
 
   use_motion_module: true
   motion_module_resolutions: [1, 2, 4, 8]
