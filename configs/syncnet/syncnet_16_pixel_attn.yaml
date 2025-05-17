@@ -13,7 +13,7 @@ model:
     dropout: 0.0
 
 ckpt:
-  resume_ckpt_path: ""
+  resume_ckpt_path: "" # We don't need to resume training in inference
   inference_ckpt_path: checkpoints/stable_syncnet.pt
   save_ckpt_steps: 2500
 
@@ -25,11 +25,11 @@ data:
   latent_space: false
   num_frames: 16
   resolution: 256
-  train_fileslist: /mnt/bn/maliva-gen-ai-v2/chunyu.li/fileslist/data_v10_core.txt
+  train_fileslist: fileslist/data_v10_core.txt
   train_data_dir: ""
   val_fileslist: ""
   val_data_dir: /mnt/bn/maliva-gen-ai-v2/chunyu.li/VoxCeleb2/high_visual_quality/val
-  audio_mel_cache_dir: /mnt/bn/maliva-gen-ai-v2/chunyu.li/audio_cache/mel
+  audio_mel_cache_dir: audio_cache/mel
   lower_half: true
   audio_sample_rate: 16000
   video_fps: 25
