@@ -1,38 +1,37 @@
-FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+# Use an official Python runtime with CUDA support as a parent image
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
-WORKDIR /workspace
+# Set environment variables to avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive \
+    PATH=/opt/conda/bin:$PATH
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ffmpeg libgl1 libglib2.0-0 wget unzip \
-    python3-pip python3-venv build-essential \
-    python3-dev g++ \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create virtual environment
-RUN python3 -m venv /opt/venv && \
-    echo "source /opt/venv/bin/activate" >> ~/.bashrc
+# Create a working directory
+WORKDIR /app
 
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Install PyTorch with CUDA 12.4 support
-RUN pip install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --extra-index-url https://download.pytorch.org/whl/cu124 
-
-# Optional: Install Cython early for compiling packages like insightface
-RUN pip install cython
-
-# Clone repo and proceed with setup
-RUN git clone https://github.com/arpitdayma3/LatentSyncnew.git  .
-
-# Copy files like requirements.txt, handler.py, etc.
+# Copy the requirements file
 COPY requirements.txt .
-RUN pip install -r requirements.txt
 
-# Setup checkpoints
-COPY setup_checkpoints.sh .
-RUN chmod +x setup_checkpoints.sh && ./setup_checkpoints.sh
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-COPY main.py /workspace/main.py
+# Copy the model checkpoints
+RUN huggingface-cli download ByteDance/LatentSync-1.5 whisper/tiny.pt --local-dir checkpoints && \
+    huggingface-cli download ByteDance/LatentSync-1.5 latentsync_unet.pt --local-dir checkpoints
 
-EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Copy the rest of the application code
+COPY . .
+
+# Create a new Conda environment
+RUN conda create -y -n latentsync python=3.10.13 && \
+    conda activate latentsync && \
+    conda install -y -c conda-forge ffmpeg
+
+# Set the entry point for the container
+ENTRYPOINT ["python", "-m", "scripts.inference"]
