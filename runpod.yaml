@@ -1,0 +1,12 @@
+name: latentsync-api
+resources:
+  cpu: 2
+  memory: 8Gi
+  gpuCount: 1
+  gpuType: "NVIDIA A10"  # You can change to A100, L40, etc., based on your needs
+
+env:
+  - name: PYTHONUNBUFFERED
+    value: "1"
+
+handler: handler.py
