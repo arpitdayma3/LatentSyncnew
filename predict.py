@@ -1,12 +1,7 @@
-# Prediction interface for Cog ⚙️
-# https://cog.run/python
-
-from cog import BasePredictor, Input, Path
 import os
 import time
-import subprocess
 import requests
-from pathlib import Path
+import subprocess
 
 MODEL_CACHE = "checkpoints"
 MODEL_URL = "https://weights.replicate.delivery/default/chunyu-li/LatentSync/model.tar"
@@ -20,59 +15,60 @@ def download_weights(url, dest):
     print("downloading took: ", time.time() - start)
 
 
-def download_file(url, dest):
-    response = requests.get(url)
-    response.raise_for_status()
-    with open(dest, 'wb') as f:
-        f.write(response.content)
-    return dest
+def download_file(url, dest_path):
+    response = requests.get(url, stream=True)
+    with open(dest_path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
 
 
-class Predictor(BasePredictor):
-    def setup(self) -> None:
-        """Load the model into memory to make running multiple predictions efficient"""
-        # Download the model weights
-        if not os.path.exists(MODEL_CACHE):
-            download_weights(MODEL_URL, MODEL_CACHE)
+def upload_file_to_transfer_sh(file_path):
+    with open(file_path, 'rb') as f:
+        response = requests.put(f"https://transfer.sh/{os.path.basename(file_path)}", data=f)
+    return response.text.strip()
 
-        # Soft links for the auxiliary models
-        os.system("mkdir -p ~/.cache/torch/hub/checkpoints")
-        os.system(
-            "ln -s $(pwd)/checkpoints/auxiliary/2DFAN4-cd938726ad.zip ~/.cache/torch/hub/checkpoints/2DFAN4-cd938726ad.zip"
-        )
-        os.system(
-            "ln -s $(pwd)/checkpoints/auxiliary/s3fd-619a316812.pth ~/.cache/torch/hub/checkpoints/s3fd-619a316812.pth"
-        )
-        os.system(
-            "ln -s $(pwd)/checkpoints/auxiliary/vgg16-397923af.pth ~/.cache/torch/hub/checkpoints/vgg16-397923af.pth"
-        )
 
-    def predict(
-        self,
-        video_url: str = Input(description="URL of the input video", default=None),
-        audio_url: str = Input(description="URL of the input audio", default=None),
-        guidance_scale: float = Input(description="Guidance scale", ge=1, le=3, default=2.0),
-        inference_steps: int = Input(description="Inference steps", ge=20, le=50, default=20),
-        seed: int = Input(description="Set to 0 for Random seed", default=0),
-    ) -> Path:
-        """Run a single prediction on the model"""
-        if seed <= 0:
-            seed = int.from_bytes(os.urandom(2), "big")
-        print(f"Using seed: {seed}")
+def main(inputs):
+    # Get inputs from request
+    video_url = inputs["video_url"]
+    audio_url = inputs["audio_url"]
+    guidance_scale = float(inputs.get("guidance_scale", 2.0))
+    inference_steps = int(inputs.get("inference_steps", 20))
+    seed = int(inputs.get("seed", 0))
 
-        # Download the video and audio files from the provided URLs
-        video_path = "/tmp/video_input.mp4"
-        audio_path = "/tmp/audio_input.wav"
+    if seed <= 0:
+        seed = int.from_bytes(os.urandom(2), "big")
+    print(f"Using seed: {seed}")
 
-        video_path = download_file(video_url, video_path)
-        audio_path = download_file(audio_url, audio_path)
+    # Prepare input file paths
+    video_path = "/tmp/input_video.mp4"
+    audio_path = "/tmp/input_audio.wav"
+    output_path = "/tmp/output_video.mp4"
 
-        config_path = "configs/unet/stage2.yaml"
-        ckpt_path = "checkpoints/latentsync_unet.pt"
-        output_path = "/tmp/video_out.mp4"
+    # Download input files
+    print("Downloading input files...")
+    download_file(video_url, video_path)
+    download_file(audio_url, audio_path)
 
-        # Run the following command:
-        os.system(
-            f"python -m scripts.inference --unet_config_path {config_path} --inference_ckpt_path {ckpt_path} --guidance_scale {str(guidance_scale)} --video_path {video_path} --audio_path {audio_path} --video_out_path {output_path} --seed {seed} --inference_steps {inference_steps}"
-        )
-        return Path(output_path)
+    # Define paths
+    config_path = "configs/unet/stage2.yaml"
+    ckpt_path = "checkpoints/latentsync_unet.pt"
+
+    # Run inference command
+    print("Running inference...")
+    os.system(
+        f"python -m scripts.inference "
+        f"--unet_config_path {config_path} "
+        f"--inference_ckpt_path {ckpt_path} "
+        f"--guidance_scale {guidance_scale} "
+        f"--video_path {video_path} "
+        f"--audio_path {audio_path} "
+        f"--video_out_path {output_path} "
+        f"--seed {seed} "
+        f"--inference_steps {inference_steps}"
+    )
+
+    print("Uploading output...")
+    result_url = upload_file_to_transfer_sh(output_path)
+
+    return result_url
