@@ -1,37 +1,52 @@
+import runpod
 import os
-import subprocess
-import uuid
-from fastapi import FastAPI
-from pydantic import BaseModel
+from predict import main as run_latentsync
 
-app = FastAPI()
 
-class InputData(BaseModel):
-    video_path: str
-    audio_path: str
-    guidance_scale: float = 2.0
-    inference_steps: int = 20
-    seed: int = 1247
+# Ensure checkpoints and cache directories exist
+def setup_environment():
+    os.makedirs("checkpoints/whisper", exist_ok=True)
+    os.makedirs("checkpoints/auxiliary", exist_ok=True)
+    os.makedirs(os.path.expanduser("~/.cache/torch/hub/checkpoints"), exist_ok=True)
 
-@app.post("/run")
-def run_pipeline(data: InputData):
-    output_dir = f"/workspace/outputs/{uuid.uuid4()}"
-    os.makedirs(output_dir, exist_ok=True)
+    # Create symlinks for auxiliary models (if not already)
+    aux_files = [
+        "2DFAN4-cd938726ad.zip",
+        "s3fd-619a316812.pth",
+        "vgg16-397923af.pth",
+    ]
+    for filename in aux_files:
+        src = os.path.abspath(f"checkpoints/auxiliary/{filename}")
+        dst = os.path.expanduser(f"~/.cache/torch/hub/checkpoints/{filename}")
+        if not os.path.exists(dst) and os.path.exists(src):
+            os.symlink(src, dst)
 
-    cmd = f"""
-    cd /workspace &&
-    python -m scripts.inference \
-        --unet_config_path configs/unet/stage2_efficient.yaml \
-        --inference_ckpt_path checkpoints/latentsync_unet.pt \
-        --guidance_scale {data.guidance_scale} \
-        --video_path {data.video_path} \
-        --audio_path {data.audio_path} \
-        --video_out_path {output_dir}/output.mp4 \
-        --seed {data.seed} \
-        --inference_steps {data.inference_steps}
-    """
+
+# Run once on cold start
+setup_environment()
+
+
+def handler(job):
     try:
-        subprocess.run(cmd, shell=True, check=True)
-        return {"output": f"{output_dir}/output.mp4"}
+        inputs = job["input"]
+
+        # Required fields: video_url and audio_url
+        if not inputs.get("video_url") or not inputs.get("audio_url"):
+            return {"status": "error", "message": "Missing video_url or audio_url."}
+
+        print("Running LatentSync inference job...")
+
+        # Call the model
+        result_url = run_latentsync(inputs)
+
+        return {
+            "status": "success",
+            "output_url": result_url
+        }
+
     except Exception as e:
-        return {"error": str(e)}
+        print(f"Error in handler: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+
+runpod.serverless.start({"handler": handler})
